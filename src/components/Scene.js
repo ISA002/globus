@@ -3,7 +3,7 @@ import * as THREE from "three";
 import Line from "./Line";
 
 import map from "../assets/map2.png";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+// import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import vertex from "./shader/vertex.glsl";
 import fragment from "./shader/fragment.glsl";
 
@@ -34,7 +34,7 @@ export default class Renderer3D {
     this.camera.position.set(0, 0, 18);
     this.camera.lookAt(new THREE.Vector3());
 
-    new OrbitControls(this.camera, this.renderer.domElement);
+    // new OrbitControls(this.camera, this.renderer.domElement);
 
     this.mouse = { x: 0, y: 0 };
 
@@ -99,7 +99,7 @@ export default class Renderer3D {
       side: THREE.BackSide,
     });
 
-    const hexagonGeometry = new THREE.SphereGeometry(5.2, 64, 64);
+    const hexagonGeometry = new THREE.SphereGeometry(5, 64, 64);
 
     const hexagongSphereFront = new THREE.Mesh(
       hexagonGeometry,
@@ -130,7 +130,7 @@ export default class Renderer3D {
       //   side: THREE.DoubleSide,
       // });
       const radius = 1;
-      this.R = 5.1;
+      this.R = 5;
 
       for (let i = DOT_COUNT; i >= 0; i--) {
         const phi = Math.acos(-1 + (2 * i) / DOT_COUNT);
@@ -199,7 +199,7 @@ export default class Renderer3D {
   };
 
   drawLinesBetweenPositions = () => {
-    if (this.time.toFixed(1) % 6 === 0) {
+    if (this.time.toFixed(1) % 4 === 0) {
       const posCount = this.positions.length;
       const randFirst = Math.round(Math.random() * posCount - 1);
       const randSecond = Math.round(Math.random() * posCount - 1);

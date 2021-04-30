@@ -1,5 +1,8 @@
 import * as THREE from "three";
 import { geoInterpolate } from "d3";
+// import gsap from 'gsap';
+import vertex from "./lineShader/vertex.glsl";
+import fragment from "./lineShader/fragment.glsl";
 
 export default class Line {
   constructor(startXYZ, endXYZ, radius, scene) {
@@ -36,13 +39,22 @@ export default class Line {
 
       this.geometry.computeBoundingSphere();
       this.geometry.computeBoundingBox();
-      this.material = new THREE.MeshBasicMaterial({
-        color: 0xff7f50,
+      this.material = new THREE.ShaderMaterial({
+        uniforms: {
+          u_resolution: {
+            type: "v2",
+            value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+          },
+          u_vanishValue: { value: 0.0 },
+        },
+        vertexShader: vertex,
+        fragmentShader: fragment,
       });
+      this.simpleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
       const pointGeometry = new THREE.SphereGeometry(0.05, 32, 32);
 
-      this.startPointMesh = new THREE.Mesh(pointGeometry, this.material);
-      this.endPointMesh = new THREE.Mesh(pointGeometry, this.material);
+      this.startPointMesh = new THREE.Mesh(pointGeometry, this.simpleMaterial);
+      this.endPointMesh = new THREE.Mesh(pointGeometry, this.simpleMaterial);
       this.mesh = new THREE.Mesh(this.geometry, this.material);
       this.startPointMesh.position.set(startXYZ.x, startXYZ.y, startXYZ.z);
       this.endPointMesh.position.set(endXYZ.x, endXYZ.y, endXYZ.z);
@@ -79,16 +91,22 @@ export default class Line {
     drawRangeCount = progress * 3000;
 
     if (progress < 0.999) {
-      if (progress > 0.4 && !this.addedEndPoint) {
-        this.scene.add(this.endPointMesh);
-        this.addedEndPoint = true;
+      if (progress > 0.4) {
+        if (!this.addedEndPoint) {
+          this.scene.add(this.endPointMesh);
+          this.scene.remove(this.startPointMesh);
+          this.addedEndPoint = true;
+        }
+        this.mesh.material.uniforms.u_vanishValue.value += 0.05;
       }
-      this.geometry.setDrawRange(0, drawRangeCount);
+      const vanVal = this.mesh.material.uniforms.u_vanishValue.value.toFixed(1);
+      if (Number(vanVal) === 1.1) {
+        this.scene.remove(this.endPointMesh);
+      }
+      this.mesh.geometry.setDrawRange(0, drawRangeCount);
       requestAnimationFrame(this.drawAnimatedLine);
     } else {
-      this.scene.remove(this.endPointMesh);
       this.scene.remove(this.mesh);
-      this.scene.remove(this.startPointMesh);
     }
   };
 }
