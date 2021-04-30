@@ -14,7 +14,7 @@ export default class Renderer3D {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     this.scene = new THREE.Scene();
-    this.renderer = new THREE.WebGLRenderer();
+    this.renderer = new THREE.WebGLRenderer({ antialias: false });
     this.renderer.setSize(this.width, this.height);
     this.context = this.renderer.getContext("2d");
     // this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -55,87 +55,85 @@ export default class Renderer3D {
   };
 
   addObjects = () => {
-    const geometry = new THREE.SphereGeometry(5, 64, 64);
-    const texture = new THREE.TextureLoader().load(map);
-    const mapSphereMaterialData = {
-      map: texture,
-      transparent: true,
-    };
-    const materialFront = new THREE.MeshBasicMaterial({
-      ...mapSphereMaterialData,
-      side: THREE.FrontSide,
-    });
-
-    const materialBack = new THREE.MeshBasicMaterial({
-      ...mapSphereMaterialData,
-      side: THREE.BackSide,
-      opacity: 0.5,
-      depthTest: false,
-    });
-
-    const hexagonSphereData = {
-      uniforms: {
-        u_resolution: {
-          type: "v2",
-          value: new THREE.Vector2(window.innerWidth, window.innerHeight),
-        },
-      },
-      vertexShader: vertex,
-      fragmentShader: fragment,
-      depthTest: false,
-      transparent: true,
-    };
-
-    const hexagonMaterialFront = new THREE.ShaderMaterial({
-      ...hexagonSphereData,
-      side: THREE.FrontSide,
-    });
-
-    const hexagonMaterialBack = new THREE.ShaderMaterial({
-      ...hexagonSphereData,
-      side: THREE.BackSide,
-    });
-
-    const hexagonGeometry = new THREE.SphereGeometry(5.2, 64, 64);
-
-    const hexagongSphereFront = new THREE.Mesh(
-      hexagonGeometry,
-      hexagonMaterialFront
-    );
-    const hexagongSphereBack = new THREE.Mesh(
-      hexagonGeometry,
-      hexagonMaterialBack
-    );
-    const sphereFront = new THREE.Mesh(geometry, materialFront);
-    const sphereBack = new THREE.Mesh(geometry, materialBack);
-    this.scene.add(sphereBack);
-    this.scene.add(sphereFront);
-    this.scene.add(hexagongSphereFront);
-    this.scene.add(hexagongSphereBack);
-
-
-    
-    
-    const vector = new THREE.Vector3();
-    const DOT_COUNT = 1000;
-    // const dotGeometry = new THREE.CircleGeometry(2, 5);
-    // const positions = [];
-
-    // const materialDot = new THREE.MeshBasicMaterial({
-    //   color: 0xff0000,
-    //   side: THREE.DoubleSide,
-    // });
-    const radius = 6;
-
     new THREE.ImageLoader().load(map, (img) => {
+      const geometry = new THREE.SphereGeometry(5, 64, 64);
+      const texture = new THREE.TextureLoader().load(map);
+      const mapSphereMaterialData = {
+        map: texture,
+        transparent: true,
+      };
+      const materialFront = new THREE.MeshBasicMaterial({
+        ...mapSphereMaterialData,
+        side: THREE.FrontSide,
+      });
+
+      const materialBack = new THREE.MeshBasicMaterial({
+        ...mapSphereMaterialData,
+        side: THREE.BackSide,
+        opacity: 0.5,
+        depthTest: false,
+      });
+
+      const hexagonSphereData = {
+        uniforms: {
+          u_resolution: {
+            type: "v2",
+            value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+          },
+        },
+        vertexShader: vertex,
+        fragmentShader: fragment,
+        depthTest: false,
+        transparent: true,
+      };
+
+      const hexagonMaterialFront = new THREE.ShaderMaterial({
+        ...hexagonSphereData,
+        side: THREE.FrontSide,
+      });
+
+      const hexagonMaterialBack = new THREE.ShaderMaterial({
+        ...hexagonSphereData,
+        side: THREE.BackSide,
+      });
+
+      const hexagonGeometry = new THREE.SphereGeometry(5.2, 64, 64);
+
+      const hexagongSphereFront = new THREE.Mesh(
+        hexagonGeometry,
+        hexagonMaterialFront
+      );
+      const hexagongSphereBack = new THREE.Mesh(
+        hexagonGeometry,
+        hexagonMaterialBack
+      );
+      const sphereFront = new THREE.Mesh(geometry, materialFront);
+      const sphereBack = new THREE.Mesh(geometry, materialBack);
+      sphereFront.rotateY(55);
+      sphereBack.rotateY(55);
+      this.scene.add(sphereBack);
+      this.scene.add(sphereFront);
+      this.scene.add(hexagongSphereFront);
+      this.scene.add(hexagongSphereBack);
+
+      const vector = new THREE.Vector3();
+      const DOT_COUNT = 3000;
+      const dotGeometry = new THREE.CircleGeometry(0.05, 5);
+      const positions = [];
+
+      const materialDot = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
+        side: THREE.DoubleSide,
+      });
+      const radius = 1;
+
       for (let i = DOT_COUNT; i >= 0; i--) {
         const phi = Math.acos(-1 + (2 * i) / DOT_COUNT);
         const theta = Math.sqrt(DOT_COUNT * Math.PI) * phi;
 
         vector.setFromSphericalCoords(radius, phi, theta);
-        // console.log(vector);
-        // dotGeometry.lookAt(vector);
-        // dotGeometry.translate(vector.x, vector.y, vector.z);
+        dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
+        dotGeometry.translate(vector.x, vector.y, vector.z);
         vector.x /= radius;
         vector.y /= radius;
         vector.z /= radius;
@@ -144,38 +142,24 @@ export default class Renderer3D {
         const sizeMap = { x: 1440, y: 754 };
         imageData = this.getImageData(img);
 
-        // dotGeometry.computeBoundingSphere();
+        dotGeometry.computeBoundingSphere();
         const uv = this.pointToUv(vector);
-        if (i === DOT_COUNT || i === 0) console.log(uv);
-        // console.log(uv);
-        // const sample = imageData.getImageData(
-        //   uv.x * sizeMap.x,
-        //   uv.y * sizeMap.y,
-        //   1,
-        //   1
-        // ).data;
-        // if (sample[0] !== africaColor.r && sample[1] !== africaColor.g) return;
-        
-        // for (let i = 0; i < dotGeometry.faces.length; i++) {
-        //   const face = dotGeometry.faces[i];
+        const sample = imageData.getImageData(
+          uv.u * sizeMap.x,
+          uv.v * sizeMap.y,
+          1,
+          1
+        ).data;
+        if (sample[0] !== africaColor.r) continue;
 
-        //   positions.push(
-        //     dotGeometry.vertices[face.a].x,
-        //     dotGeometry.vertices[face.a].y,
-        //     dotGeometry.vertices[face.a].z,
-        //     dotGeometry.vertices[face.b].x,
-        //     dotGeometry.vertices[face.b].y,
-        //     dotGeometry.vertices[face.b].z,
-        //     dotGeometry.vertices[face.c].x,
-        //     dotGeometry.vertices[face.c].y,
-        //     dotGeometry.vertices[face.c].z
-        //   );
-
-        //   // const [countryId] = getCountryId(sample);
-        //   // countryIds.push(countryId, countryId, countryId);
-        // }
-        }
-      })
+        const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
+        dotMesh.position.set(vector.x * 5.1, vector.y * 5.1, vector.z * 5.1);
+        positions.push(dotMesh.position);
+        dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
+        this.scene.add(dotMesh);
+      }
+      console.log(positions);
+    });
     this.addListeners();
   };
 
