@@ -1,8 +1,8 @@
 import * as THREE from "three";
 // import gsap from 'gsap';
-import Line from './Line';
+import Line from "./Line";
 
-import map from "../assets/africa-map.png";
+import map from "../assets/map2.png";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import vertex from "./shader/vertex.glsl";
 import fragment from "./shader/fragment.glsl";
@@ -175,8 +175,15 @@ export default class Renderer3D {
   render = () => {
     if (this.startTime) {
       this.time += 0.1;
-      this.drawLinesBetweenPositions()
+      this.drawLinesBetweenPositions();
     }
+    const rotSpeed = 0.005;
+    const x = this.camera.position.x;
+    const z = this.camera.position.z;
+
+    this.camera.position.x = x * Math.cos(rotSpeed) + z * Math.sin(rotSpeed);
+    this.camera.position.z = z * Math.cos(rotSpeed) - x * Math.sin(rotSpeed);
+    this.camera.lookAt(this.scene.position);
 
     requestAnimationFrame(this.render);
     this.renderer.render(this.scene, this.camera);
@@ -192,13 +199,18 @@ export default class Renderer3D {
   };
 
   drawLinesBetweenPositions = () => {
-    if (this.time.toFixed(1) % 9 === 0) {
+    if (this.time.toFixed(1) % 6 === 0) {
       const posCount = this.positions.length;
       const randFirst = Math.round(Math.random() * posCount - 1);
       const randSecond = Math.round(Math.random() * posCount - 1);
-      new Line(this.positions[randFirst], this.positions[randSecond], this.R, this.scene)
-    } 
-  }
+      new Line(
+        this.positions[randFirst],
+        this.positions[randSecond],
+        this.R,
+        this.scene
+      );
+    }
+  };
 
   getImageData = (img) => {
     const canvas = document.createElement("canvas");

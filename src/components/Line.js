@@ -20,7 +20,7 @@ export default class Line {
       const startV = new THREE.Vector2(start[0], start[1]);
       const endV = new THREE.Vector2(end[0], end[1]);
 
-      const arcHeight = startV.distanceTo(endV) * 0.5 + radius;
+      const arcHeight = startV.distanceTo(endV) * 0.5 + radius * 1.2;
 
       const controlXYZ1 = this.toXYZ(control1[1], control1[0], arcHeight);
       const controlXYZ2 = this.toXYZ(control2[1], control2[0], arcHeight);
