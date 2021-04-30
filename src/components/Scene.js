@@ -1,5 +1,6 @@
 import * as THREE from "three";
 // import gsap from 'gsap';
+import Line from './Line';
 
 import map from "../assets/africa-map.png";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -18,6 +19,8 @@ export default class Renderer3D {
     this.renderer.setSize(this.width, this.height);
     this.context = this.renderer.getContext("2d");
     // this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.time = 0;
+    this.startTime = false;
     this.renderer.setClearColor(0x13344c, 1);
     dom.appendChild(this.renderer.domElement);
 
@@ -55,85 +58,87 @@ export default class Renderer3D {
   };
 
   addObjects = () => {
-    new THREE.ImageLoader().load(map, (img) => {
-      const geometry = new THREE.SphereGeometry(5, 64, 64);
-      const texture = new THREE.TextureLoader().load(map);
-      const mapSphereMaterialData = {
-        map: texture,
-        transparent: true,
-      };
-      const materialFront = new THREE.MeshBasicMaterial({
-        ...mapSphereMaterialData,
-        side: THREE.FrontSide,
-      });
+    const geometry = new THREE.SphereGeometry(5, 64, 64);
+    const texture = new THREE.TextureLoader().load(map);
+    const mapSphereMaterialData = {
+      map: texture,
+      transparent: true,
+    };
+    const materialFront = new THREE.MeshBasicMaterial({
+      ...mapSphereMaterialData,
+      side: THREE.FrontSide,
+    });
 
-      const materialBack = new THREE.MeshBasicMaterial({
-        ...mapSphereMaterialData,
-        side: THREE.BackSide,
-        opacity: 0.5,
-        depthTest: false,
-      });
+    const materialBack = new THREE.MeshBasicMaterial({
+      ...mapSphereMaterialData,
+      side: THREE.BackSide,
+      opacity: 0.5,
+      depthTest: false,
+    });
 
-      const hexagonSphereData = {
-        uniforms: {
-          u_resolution: {
-            type: "v2",
-            value: new THREE.Vector2(window.innerWidth, window.innerHeight),
-          },
+    const hexagonSphereData = {
+      uniforms: {
+        u_resolution: {
+          type: "v2",
+          value: new THREE.Vector2(window.innerWidth, window.innerHeight),
         },
-        vertexShader: vertex,
-        fragmentShader: fragment,
-        depthTest: false,
-        transparent: true,
-      };
+      },
+      vertexShader: vertex,
+      fragmentShader: fragment,
+      depthTest: false,
+      transparent: true,
+    };
 
-      const hexagonMaterialFront = new THREE.ShaderMaterial({
-        ...hexagonSphereData,
-        side: THREE.FrontSide,
-      });
+    const hexagonMaterialFront = new THREE.ShaderMaterial({
+      ...hexagonSphereData,
+      side: THREE.FrontSide,
+    });
 
-      const hexagonMaterialBack = new THREE.ShaderMaterial({
-        ...hexagonSphereData,
-        side: THREE.BackSide,
-      });
+    const hexagonMaterialBack = new THREE.ShaderMaterial({
+      ...hexagonSphereData,
+      side: THREE.BackSide,
+    });
 
-      const hexagonGeometry = new THREE.SphereGeometry(5.2, 64, 64);
+    const hexagonGeometry = new THREE.SphereGeometry(5.2, 64, 64);
 
-      const hexagongSphereFront = new THREE.Mesh(
-        hexagonGeometry,
-        hexagonMaterialFront
-      );
-      const hexagongSphereBack = new THREE.Mesh(
-        hexagonGeometry,
-        hexagonMaterialBack
-      );
-      const sphereFront = new THREE.Mesh(geometry, materialFront);
-      const sphereBack = new THREE.Mesh(geometry, materialBack);
-      sphereFront.rotateY(55);
-      sphereBack.rotateY(55);
-      this.scene.add(sphereBack);
-      this.scene.add(sphereFront);
+    const hexagongSphereFront = new THREE.Mesh(
+      hexagonGeometry,
+      hexagonMaterialFront
+    );
+    const hexagongSphereBack = new THREE.Mesh(
+      hexagonGeometry,
+      hexagonMaterialBack
+    );
+    this.sphereFront = new THREE.Mesh(geometry, materialFront);
+    this.sphereBack = new THREE.Mesh(geometry, materialBack);
+    this.sphereFront.rotateY(55);
+    this.sphereBack.rotateY(55);
+
+    new THREE.ImageLoader().load(map, (img) => {
+      this.scene.add(this.sphereBack);
+      this.scene.add(this.sphereFront);
       this.scene.add(hexagongSphereFront);
       this.scene.add(hexagongSphereBack);
 
       const vector = new THREE.Vector3();
       const DOT_COUNT = 3000;
-      const dotGeometry = new THREE.CircleGeometry(0.05, 5);
-      const positions = [];
+      // const dotGeometry = new THREE.CircleGeometry(0.05, 5);
+      this.positions = [];
 
-      const materialDot = new THREE.MeshBasicMaterial({
-        color: 0xff0000,
-        side: THREE.DoubleSide,
-      });
+      // const materialDot = new THREE.MeshBasicMaterial({
+      //   color: 0xff0000,
+      //   side: THREE.DoubleSide,
+      // });
       const radius = 1;
+      this.R = 5.1;
 
       for (let i = DOT_COUNT; i >= 0; i--) {
         const phi = Math.acos(-1 + (2 * i) / DOT_COUNT);
         const theta = Math.sqrt(DOT_COUNT * Math.PI) * phi;
 
         vector.setFromSphericalCoords(radius, phi, theta);
-        dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
-        dotGeometry.translate(vector.x, vector.y, vector.z);
+        // dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
+        // dotGeometry.translate(vector.x, vector.y, vector.z);
         vector.x /= radius;
         vector.y /= radius;
         vector.z /= radius;
@@ -142,7 +147,7 @@ export default class Renderer3D {
         const sizeMap = { x: 1440, y: 754 };
         imageData = this.getImageData(img);
 
-        dotGeometry.computeBoundingSphere();
+        // dotGeometry.computeBoundingSphere();
         const uv = this.pointToUv(vector);
         const sample = imageData.getImageData(
           uv.u * sizeMap.x,
@@ -152,18 +157,27 @@ export default class Renderer3D {
         ).data;
         if (sample[0] !== africaColor.r) continue;
 
-        const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
-        dotMesh.position.set(vector.x * 5.1, vector.y * 5.1, vector.z * 5.1);
-        positions.push(dotMesh.position);
-        dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
-        this.scene.add(dotMesh);
+        // const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
+        // dotMesh.position.set(vector.x * 5.1, vector.y * 5.1, vector.z * 5.1);
+        this.positions.push({
+          x: vector.x * this.R,
+          y: vector.y * this.R,
+          z: vector.z * this.R,
+        });
+        // dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
+        // this.scene.add(dotMesh);
       }
-      console.log(positions);
+      this.startTime = true;
     });
     this.addListeners();
   };
 
   render = () => {
+    if (this.startTime) {
+      this.time += 0.1;
+      this.drawLinesBetweenPositions()
+    }
+
     requestAnimationFrame(this.render);
     this.renderer.render(this.scene, this.camera);
   };
@@ -176,6 +190,15 @@ export default class Renderer3D {
       v,
     };
   };
+
+  drawLinesBetweenPositions = () => {
+    if (this.time.toFixed(1) % 9 === 0) {
+      const posCount = this.positions.length;
+      const randFirst = Math.round(Math.random() * posCount - 1);
+      const randSecond = Math.round(Math.random() * posCount - 1);
+      new Line(this.positions[randFirst], this.positions[randSecond], this.R, this.scene)
+    } 
+  }
 
   getImageData = (img) => {
     const canvas = document.createElement("canvas");
