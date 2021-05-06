@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { geoInterpolate } from "d3";
-// import gsap from 'gsap';
+import { Circ, TimelineMax } from "gsap";
 import vertex from "./lineShader/vertex.glsl";
 import fragment from "./lineShader/fragment.glsl";
 
@@ -23,7 +23,7 @@ export default class Line {
       const startV = new THREE.Vector2(start[0], start[1]);
       const endV = new THREE.Vector2(end[0], end[1]);
 
-      const arcHeight = startV.distanceTo(endV) * 0.5 + radius * 1.2;
+      const arcHeight = startV.distanceTo(endV) * 0.5 + radius * 1.35;
 
       const controlXYZ1 = this.toXYZ(control1[1], control1[0], arcHeight);
       const controlXYZ2 = this.toXYZ(control2[1], control2[0], arcHeight);
@@ -35,7 +35,7 @@ export default class Line {
         endXYZ
       );
 
-      this.geometry = new THREE.TubeBufferGeometry(curve, 44, 0.02, 4);
+      this.geometry = new THREE.TubeBufferGeometry(curve, 64, 0.02, 4);
 
       this.geometry.computeBoundingSphere();
       this.geometry.computeBoundingBox();
@@ -50,7 +50,7 @@ export default class Line {
         vertexShader: vertex,
         fragmentShader: fragment,
       });
-      this.simpleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      this.simpleMaterial = new THREE.MeshBasicMaterial({ color: 0xff992b });
       const pointGeometry = new THREE.SphereGeometry(0.05, 32, 32);
 
       this.startPointMesh = new THREE.Mesh(pointGeometry, this.simpleMaterial);
@@ -61,8 +61,27 @@ export default class Line {
 
       this.scene.add(this.mesh);
       this.scene.add(this.startPointMesh);
+      this.gVanVal = {
+        value: 0,
+      };
 
       this.geometry.setDrawRange(0, 1);
+      this.t1 = new TimelineMax({ onUpdate: this.drawAnimatedLine });
+      this.t1.to(this.gVanVal, {
+          value: 0.51,
+          duration: 2.2,
+          ease: Circ.easeIn,
+        }).to(this.gVanVal, {
+          value: 1,
+          duration: 5,
+        }, '+=1');
+      this.t1.pause();
+    }
+  }
+
+  startAnimation = () => {
+    if (this.t1) {
+      this.t1.play()
       this.drawAnimatedLine();
     }
   }
@@ -83,28 +102,25 @@ export default class Line {
   };
 
   drawAnimatedLine = () => {
-    let drawRangeCount = this.geometry.drawRange.count;
-    const timeElapsed = performance.now() - this.startTime;
+    const drawRangeCount = this.gVanVal.value * 3000;
 
-    const progress = timeElapsed / 2500;
-
-    drawRangeCount = progress * 3000;
-
-    if (progress < 0.999) {
-      if (progress > 0.4) {
+    if (this.gVanVal.value < 0.999) {
+      if (this.gVanVal.value === 0.51) {
+        this.scene.add(this.endPointMesh);
+      }
+      if (this.gVanVal.value > 0.51) {
         if (!this.addedEndPoint) {
-          this.scene.add(this.endPointMesh);
           this.scene.remove(this.startPointMesh);
           this.addedEndPoint = true;
         }
-        this.mesh.material.uniforms.u_vanishValue.value += 0.05;
+        this.mesh.material.uniforms.u_vanishValue.value += 0.03;
       }
       const vanVal = this.mesh.material.uniforms.u_vanishValue.value.toFixed(1);
-      if (Number(vanVal) === 1.1) {
+      if (Number(vanVal) > 0.85) {
         this.scene.remove(this.endPointMesh);
       }
       this.mesh.geometry.setDrawRange(0, drawRangeCount);
-      requestAnimationFrame(this.drawAnimatedLine);
+      // requestAnimationFrame(this.drawAnimatedLine);
     } else {
       this.scene.remove(this.mesh);
     }

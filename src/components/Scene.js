@@ -1,9 +1,8 @@
 import * as THREE from "three";
-// import gsap from 'gsap';
 import Line from "./Line";
 
 import map from "../assets/map2.png";
-// import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import vertex from "./shader/vertex.glsl";
 import fragment from "./shader/fragment.glsl";
 
@@ -15,7 +14,7 @@ export default class Renderer3D {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     this.scene = new THREE.Scene();
-    this.renderer = new THREE.WebGLRenderer({ antialias: false });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(this.width, this.height);
     this.context = this.renderer.getContext("2d");
     // this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -31,13 +30,14 @@ export default class Renderer3D {
       1000
     );
 
-    this.camera.position.set(0, 0, 18);
+    this.camera.position.set(0, 0, 20);
     this.camera.lookAt(new THREE.Vector3());
 
-    // new OrbitControls(this.camera, this.renderer.domElement);
+    new OrbitControls(this.camera, this.renderer.domElement);
 
     this.mouse = { x: 0, y: 0 };
 
+    this.addListeners();
     this.addObjects();
     this.render();
   }
@@ -99,7 +99,7 @@ export default class Renderer3D {
       side: THREE.BackSide,
     });
 
-    const hexagonGeometry = new THREE.SphereGeometry(5, 64, 64);
+    const hexagonGeometry = new THREE.SphereGeometry(5, 12, 12);
 
     const hexagongSphereFront = new THREE.Mesh(
       hexagonGeometry,
@@ -119,35 +119,27 @@ export default class Renderer3D {
       this.scene.add(this.sphereFront);
       this.scene.add(hexagongSphereFront);
       this.scene.add(hexagongSphereBack);
-
-      const vector = new THREE.Vector3();
+  
+      const imageData = this.getImageData(img);
       const DOT_COUNT = 3000;
-      // const dotGeometry = new THREE.CircleGeometry(0.05, 5);
       this.positions = [];
 
-      // const materialDot = new THREE.MeshBasicMaterial({
-      //   color: 0xff0000,
-      //   side: THREE.DoubleSide,
-      // });
       const radius = 1;
-      this.R = 5;
+      this.outR = 5;
 
       for (let i = DOT_COUNT; i >= 0; i--) {
+        const vector = new THREE.Vector3();
         const phi = Math.acos(-1 + (2 * i) / DOT_COUNT);
         const theta = Math.sqrt(DOT_COUNT * Math.PI) * phi;
 
         vector.setFromSphericalCoords(radius, phi, theta);
-        // dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
-        // dotGeometry.translate(vector.x, vector.y, vector.z);
+
         vector.x /= radius;
         vector.y /= radius;
         vector.z /= radius;
 
-        let imageData;
         const sizeMap = { x: 1440, y: 754 };
-        imageData = this.getImageData(img);
 
-        // dotGeometry.computeBoundingSphere();
         const uv = this.pointToUv(vector);
         const sample = imageData.getImageData(
           uv.u * sizeMap.x,
@@ -157,33 +149,29 @@ export default class Renderer3D {
         ).data;
         if (sample[0] !== africaColor.r) continue;
 
-        // const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
-        // dotMesh.position.set(vector.x * 5.1, vector.y * 5.1, vector.z * 5.1);
         this.positions.push({
-          x: vector.x * this.R,
-          y: vector.y * this.R,
-          z: vector.z * this.R,
+          x: vector.x * this.outR,
+          y: vector.y * this.outR,
+          z: vector.z * this.outR,
         });
-        // dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
-        // this.scene.add(dotMesh);
       }
       this.startTime = true;
     });
-    this.addListeners();
   };
 
   render = () => {
     if (this.startTime) {
       this.time += 0.1;
       this.drawLinesBetweenPositions();
-    }
-    const rotSpeed = 0.005;
-    const x = this.camera.position.x;
-    const z = this.camera.position.z;
 
-    this.camera.position.x = x * Math.cos(rotSpeed) + z * Math.sin(rotSpeed);
-    this.camera.position.z = z * Math.cos(rotSpeed) - x * Math.sin(rotSpeed);
-    this.camera.lookAt(this.scene.position);
+      // const rotSpeed = 0.008;
+      // const x = this.camera.position.x;
+      // const z = this.camera.position.z;
+
+      // this.camera.position.x = x * Math.cos(rotSpeed) + z * Math.sin(rotSpeed);
+      // this.camera.position.z = z * Math.cos(rotSpeed) - x * Math.sin(rotSpeed);
+      // this.camera.lookAt(this.scene.position);
+    }
 
     requestAnimationFrame(this.render);
     this.renderer.render(this.scene, this.camera);
@@ -199,16 +187,17 @@ export default class Renderer3D {
   };
 
   drawLinesBetweenPositions = () => {
-    if (this.time.toFixed(1) % 4 === 0) {
+    if (this.time.toFixed(1) % 6 === 0) {
       const posCount = this.positions.length;
       const randFirst = Math.round(Math.random() * posCount - 1);
       const randSecond = Math.round(Math.random() * posCount - 1);
-      new Line(
+      const l = new Line(
         this.positions[randFirst],
         this.positions[randSecond],
-        this.R,
+        this.outR,
         this.scene
       );
+      l.startAnimation();
     }
   };
 
