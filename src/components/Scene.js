@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import Line from "./Line";
-
+import gsap from "gsap";
 import map from "../assets/map2.png";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+// import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import vertex from "./shader/vertex.glsl";
 import fragment from "./shader/fragment.glsl";
 
@@ -19,9 +19,32 @@ export default class Renderer3D {
     this.context = this.renderer.getContext("2d");
     // this.renderer.setPixelRatio(window.devicePixelRatio);
     this.time = 0;
+    this.offsetTime = 0;
     this.startTime = false;
+    this.speed = { value: 0 };
     this.renderer.setClearColor(0x13344c, 1);
     dom.appendChild(this.renderer.domElement);
+    this.group = new THREE.Group();
+    this.rotate = true;
+
+    this.targetRotationX = 0;
+    this.targetRotationOnMouseDownX = 0;
+
+    this.targetRotationY = 0;
+    this.targetRotationOnMouseDownY = 0;
+
+    this.mouseX = 0;
+    this.mouseXOnMouseDown = 0;
+
+    this.mouseY = 0;
+    this.mouseYOnMouseDown = 0;
+
+    this.windowHalfX = window.innerWidth / 2;
+    this.windowHalfY = window.innerHeight / 2;
+
+    this.rotationOffset = 0;
+
+    this.finalRotationY = null;
 
     this.camera = new THREE.PerspectiveCamera(
       45,
@@ -33,28 +56,25 @@ export default class Renderer3D {
     this.camera.position.set(0, 0, 20);
     this.camera.lookAt(new THREE.Vector3());
 
-    new OrbitControls(this.camera, this.renderer.domElement);
-
-    this.mouse = { x: 0, y: 0 };
-
     this.addListeners();
     this.addObjects();
     this.render();
   }
 
   addListeners = () => {
-    this.dom.addEventListener("mousemove", this.mouseEvent);
     window.addEventListener("resize", this.onResize);
-  };
-
-  mouseEvent = (e) => {
-    this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    this.dom.addEventListener("mousedown", this.onDocumentMouseDown, false);
+    this.dom.addEventListener("touchstart", this.onDocumentTouchStart, false);
+    this.dom.addEventListener("touchmove", this.onDocumentTouchMove, false);
+    this.dom.addEventListener("touchend", this.onDocumentTouchEnd, false);
   };
 
   destroy = () => {
-    this.dom.removeEventListener("mousemove", this.mouseEvent);
     window.removeEventListener("resize", this.onResize);
+    this.dom.removeEventListener("mousedown", this.onDocumentMouseDown);
+    this.dom.removeEventListener("touchstart", this.onDocumentTouchStart);
+    this.dom.removeEventListener("touchmove", this.onDocumentTouchMove);
+    this.dom.removeEventListener("touchend", this.onDocumentTouchEnd);
   };
 
   addObjects = () => {
@@ -115,24 +135,34 @@ export default class Renderer3D {
     this.sphereBack.rotateY(55);
 
     new THREE.ImageLoader().load(map, (img) => {
-      this.scene.add(this.sphereBack);
-      this.scene.add(this.sphereFront);
-      this.scene.add(hexagongSphereFront);
-      this.scene.add(hexagongSphereBack);
-  
+      this.group.add(this.sphereBack);
+      this.group.add(this.sphereFront);
+      this.group.add(hexagongSphereFront);
+      this.group.add(hexagongSphereBack);
+
       const imageData = this.getImageData(img);
-      const DOT_COUNT = 3000;
+      const DOT_COUNT = 30000;
+
+      const dotGeometry = new THREE.CircleGeometry(0.03, 5);
+      const materialDot = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
+        side: THREE.DoubleSide,
+      });
       this.positions = [];
 
       const radius = 1;
       this.outR = 5;
 
       for (let i = DOT_COUNT; i >= 0; i--) {
+        // continue;
         const vector = new THREE.Vector3();
         const phi = Math.acos(-1 + (2 * i) / DOT_COUNT);
         const theta = Math.sqrt(DOT_COUNT * Math.PI) * phi;
 
         vector.setFromSphericalCoords(radius, phi, theta);
+
+        dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
+        dotGeometry.translate(vector.x, vector.y, vector.z);
 
         vector.x /= radius;
         vector.y /= radius;
@@ -140,6 +170,7 @@ export default class Renderer3D {
 
         const sizeMap = { x: 1440, y: 754 };
 
+        dotGeometry.computeBoundingSphere();
         const uv = this.pointToUv(vector);
         const sample = imageData.getImageData(
           uv.u * sizeMap.x,
@@ -147,7 +178,13 @@ export default class Renderer3D {
           1,
           1
         ).data;
-        if (sample[0] !== africaColor.r) continue;
+        if (sample[0] <= africaColor.r - 1 || sample[0] >= africaColor.r + 1)
+          continue;
+
+        const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
+        dotMesh.position.set(vector.x * 5.1, vector.y * 5.1, vector.z * 5.1);
+        dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
+        // this.group.add(dotMesh);
 
         this.positions.push({
           x: vector.x * this.outR,
@@ -155,6 +192,7 @@ export default class Renderer3D {
           z: vector.z * this.outR,
         });
       }
+      this.scene.add(this.group);
       this.startTime = true;
     });
   };
@@ -164,13 +202,37 @@ export default class Renderer3D {
       this.time += 0.1;
       this.drawLinesBetweenPositions();
 
-      // const rotSpeed = 0.008;
-      // const x = this.camera.position.x;
-      // const z = this.camera.position.z;
+      this.finalRotationY = this.targetRotationY - this.group.rotation.x;
+      const offsetY = (this.targetRotationX - this.group.rotation.y) * 0.1;
 
-      // this.camera.position.x = x * Math.cos(rotSpeed) + z * Math.sin(rotSpeed);
-      // this.camera.position.z = z * Math.cos(rotSpeed) - x * Math.sin(rotSpeed);
-      // this.camera.lookAt(this.scene.position);
+      if (
+        this.rotate &&
+        ((this.time - this.offsetTime).toFixed(1) > 3 || this.offsetTime === 0)
+      ) {
+        gsap.to(this.speed, {
+          value: 0.004,
+          duration: 1,
+        });
+        this.group.rotation.y += this.speed.value;
+        this.rotationOffset = offsetY;
+        this.offsetTime = 0;
+      } else {
+        this.speed.value = 0;
+        this.group.rotation.y +=
+          (this.targetRotationX - this.group.rotation.y) * 0.1 -
+          this.rotationOffset;
+
+        if (this.group.rotation.x <= 1 && this.group.rotation.x >= -1) {
+          this.group.rotation.x += this.finalRotationY * 0.1;
+        }
+        if (this.group.rotation.x > 1) {
+          this.group.rotation.x = 1;
+        }
+
+        if (this.group.rotation.x < -1) {
+          this.group.rotation.x = -1;
+        }
+      }
     }
 
     requestAnimationFrame(this.render);
@@ -195,10 +257,87 @@ export default class Renderer3D {
         this.positions[randFirst],
         this.positions[randSecond],
         this.outR,
-        this.scene
+        this.group
       );
       l.startAnimation();
     }
+  };
+
+  onDocumentMouseDown = (event) => {
+    this.rotate = false;
+    event.preventDefault();
+
+    this.dom.addEventListener("mousemove", this.onDocumentMouseMove, false);
+    this.dom.addEventListener("mouseup", this.onDocumentMouseUp, false);
+    this.dom.addEventListener("mouseout", this.onDocumentMouseOut, false);
+
+    this.mouseXOnMouseDown = event.clientX - this.windowHalfX;
+    this.targetRotationOnMouseDownX = this.targetRotationX;
+
+    this.mouseYOnMouseDown = event.clientY - this.windowHalfY;
+    this.targetRotationOnMouseDownY = this.targetRotationY;
+  };
+
+  onDocumentMouseMove = (event) => {
+    this.mouseX = event.clientX - this.windowHalfX;
+    this.mouseY = event.clientY - this.windowHalfY;
+
+    this.targetRotationY =
+      this.targetRotationOnMouseDownY +
+      (this.mouseY - this.mouseYOnMouseDown) * 0.01;
+    this.targetRotationX =
+      this.targetRotationOnMouseDownX +
+      (this.mouseX - this.mouseXOnMouseDown) * 0.01;
+  };
+
+  onDocumentMouseUp = () => {
+    this.rotate = true;
+    this.offsetTime = this.time;
+    this.dom.removeEventListener("mousemove", this.onDocumentMouseMove, false);
+    this.dom.removeEventListener("mouseup", this.onDocumentMouseUp, false);
+    this.dom.removeEventListener("mouseout", this.onDocumentMouseOut, false);
+  };
+
+  onDocumentMouseOut = () => {
+    this.rotate = true;
+    this.offsetTime = this.time;
+    this.dom.removeEventListener("mousemove", this.onDocumentMouseMove, false);
+    this.dom.removeEventListener("mouseup", this.onDocumentMouseUp, false);
+    this.dom.removeEventListener("mouseout", this.onDocumentMouseOut, false);
+  };
+
+  onDocumentTouchStart = (event) => {
+    if (event.touches.length === 1) {
+      this.rotate = false;
+      event.preventDefault();
+
+      this.mouseXOnMouseDown = event.touches[0].pageX - this.windowHalfX;
+      this.targetRotationOnMouseDownX = this.targetRotationX;
+
+      this.mouseYOnMouseDown = event.touches[0].pageY - this.windowHalfY;
+      this.targetRotationOnMouseDownY = this.targetRotationY;
+    }
+  };
+
+  onDocumentTouchMove = (event) => {
+    if (event.touches.length === 1) {
+      event.preventDefault();
+
+      this.mouseX = event.touches[0].pageX - this.windowHalfX;
+      this.targetRotationX =
+        this.targetRotationOnMouseDownX +
+        (this.mouseX - this.mouseXOnMouseDown) * 0.01;
+
+      this.mouseY = event.touches[0].pageY - this.windowHalfY;
+      this.targetRotationY =
+        this.targetRotationOnMouseDownY +
+        (this.mouseY - this.mouseYOnMouseDown) * 0.01;
+    }
+  };
+
+  onDocumentTouchEnd = () => {
+    this.rotate = true;
+    this.offsetTime = this.time;
   };
 
   getImageData = (img) => {
@@ -219,6 +358,4 @@ export default class Renderer3D {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(this.width, this.height);
   };
-
-  handleClick = () => {};
 }

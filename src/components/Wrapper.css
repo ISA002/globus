@@ -2,4 +2,10 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  /* pointer-events: all; */
+}
+
+.root canvas {
+  /* pointer-events: all; */
+  overflow: hidden;
 }
