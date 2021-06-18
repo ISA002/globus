@@ -5,8 +5,9 @@ import map from "../assets/map2.png";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import vertex from "./shader/vertex.glsl";
 import fragment from "./shader/fragment.glsl";
+import groups from "./groupsOfCities";
 
-const africaColor = { r: 69, g: 164, b: 254 };
+// const africaColor = { r: 0, g: 166, b: 255 };
 export default class Renderer3D {
   constructor(dom) {
     this.dom = dom;
@@ -79,6 +80,7 @@ export default class Renderer3D {
 
   addObjects = () => {
     const geometry = new THREE.SphereGeometry(5, 64, 64);
+
     const texture = new THREE.TextureLoader().load(map);
     const mapSphereMaterialData = {
       map: texture,
@@ -92,9 +94,14 @@ export default class Renderer3D {
     const materialBack = new THREE.MeshBasicMaterial({
       ...mapSphereMaterialData,
       side: THREE.BackSide,
-      opacity: 0.5,
+      opacity: 0.3,
       depthTest: false,
     });
+
+    this.sphereFront = new THREE.Mesh(geometry, materialFront);
+    this.sphereBack = new THREE.Mesh(geometry, materialBack);
+    this.sphereFront.rotateY(55);
+    this.sphereBack.rotateY(55);
 
     const hexagonSphereData = {
       uniforms: {
@@ -129,10 +136,6 @@ export default class Renderer3D {
       hexagonGeometry,
       hexagonMaterialBack
     );
-    this.sphereFront = new THREE.Mesh(geometry, materialFront);
-    this.sphereBack = new THREE.Mesh(geometry, materialBack);
-    this.sphereFront.rotateY(55);
-    this.sphereBack.rotateY(55);
 
     new THREE.ImageLoader().load(map, (img) => {
       this.group.add(this.sphereBack);
@@ -140,58 +143,71 @@ export default class Renderer3D {
       this.group.add(hexagongSphereFront);
       this.group.add(hexagongSphereBack);
 
-      const imageData = this.getImageData(img);
-      const DOT_COUNT = 30000;
+      // const imageData = this.getImageData(img);
+      // const DOT_COUNT = 30000;
 
-      const dotGeometry = new THREE.CircleGeometry(0.03, 5);
-      const materialDot = new THREE.MeshBasicMaterial({
-        color: 0xff0000,
-        side: THREE.DoubleSide,
-      });
+      // const dotGeometry = new THREE.CircleGeometry(0.03, 5);
+      // const materialDot = new THREE.MeshBasicMaterial({
+      //   color: 0xffff00,
+      //   side: THREE.DoubleSide,
+      // });
       this.positions = [];
+      this.ptrGroups = [
+        { all: groups.group1.length - 1, now: -1 },
+        { all: groups.group2.length - 1, now: -1 },
+        { all: groups.group3.length - 1, now: -1 },
+        { all: groups.group4.length - 1, now: -1 },
+      ];
 
-      const radius = 1;
+      // const radius = 1;
       this.outR = 5;
+      // const sizeMap = { x: 2600, y: 1228 };
 
-      for (let i = DOT_COUNT; i >= 0; i--) {
-        // continue;
-        const vector = new THREE.Vector3();
-        const phi = Math.acos(-1 + (2 * i) / DOT_COUNT);
-        const theta = Math.sqrt(DOT_COUNT * Math.PI) * phi;
+      // for (let i = 0; i < groups.group4.length; i++) {
+      //   this.positions.push(groups.group4[i]);
+      //   dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
+      //   const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
+      //   dotMesh.position.set(
+      //     groups.group4[i].x,
+      //     groups.group4[i].y,
+      //     groups.group4[i].z
+      //   );
+      //   dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
+      //   this.group.add(dotMesh);
+      // }
 
-        vector.setFromSphericalCoords(radius, phi, theta);
-
-        dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
-        dotGeometry.translate(vector.x, vector.y, vector.z);
-
-        vector.x /= radius;
-        vector.y /= radius;
-        vector.z /= radius;
-
-        const sizeMap = { x: 1440, y: 754 };
-
-        dotGeometry.computeBoundingSphere();
-        const uv = this.pointToUv(vector);
-        const sample = imageData.getImageData(
-          uv.u * sizeMap.x,
-          uv.v * sizeMap.y,
-          1,
-          1
-        ).data;
-        if (sample[0] <= africaColor.r - 1 || sample[0] >= africaColor.r + 1)
-          continue;
-
-        const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
-        dotMesh.position.set(vector.x * 5.1, vector.y * 5.1, vector.z * 5.1);
-        dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
-        // this.group.add(dotMesh);
-
-        this.positions.push({
-          x: vector.x * this.outR,
-          y: vector.y * this.outR,
-          z: vector.z * this.outR,
-        });
-      }
+      // for (let i = DOT_COUNT; i >= 0; i--) {
+      //   // continue;
+      //   const vector = new THREE.Vector3();
+      //   const phi = Math.acos(-1 + (2 * i) / DOT_COUNT);
+      //   const theta = Math.sqrt(DOT_COUNT * Math.PI) * phi;
+      //   vector.setFromSphericalCoords(radius, phi, theta);
+      //   dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
+      //   dotGeometry.translate(vector.x, vector.y, vector.z);
+      //   vector.x /= radius;
+      //   vector.y /= radius;
+      //   vector.z /= radius;
+      //   dotGeometry.computeBoundingSphere();
+      //   const uv = this.pointToUv(vector);
+      //   const sample = imageData.getImageData(
+      //     uv.u * sizeMap.x,
+      //     uv.v * sizeMap.y,
+      //     1,
+      //     1
+      //   ).data;
+      //   if (sample[1] <= africaColor.g - 1 || sample[1] >= africaColor.g + 1)
+      //     continue;
+      //   const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
+      //   dotMesh.position.set(vector.x * 5.1, vector.y * 5.1, vector.z * 5.1);
+      //   dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
+      //   this.group.add(dotMesh);
+      //   this.positions.push({
+      //     x: vector.x * this.outR,
+      //     y: vector.y * this.outR,
+      //     z: vector.z * this.outR,
+      //   });
+      //   console.log(this.positions);
+      // }
       this.scene.add(this.group);
       this.startTime = true;
     });
@@ -200,7 +216,7 @@ export default class Renderer3D {
   render = () => {
     if (this.startTime) {
       this.time += 0.1;
-      this.drawLinesBetweenPositions();
+      this.drawLinesBetweenPositionsRender();
 
       this.finalRotationY = this.targetRotationY - this.group.rotation.x;
       const offsetY = (this.targetRotationX - this.group.rotation.y) * 0.1;
@@ -222,16 +238,16 @@ export default class Renderer3D {
           (this.targetRotationX - this.group.rotation.y) * 0.1 -
           this.rotationOffset;
 
-        if (this.group.rotation.x <= 1 && this.group.rotation.x >= -1) {
-          this.group.rotation.x += this.finalRotationY * 0.1;
-        }
-        if (this.group.rotation.x > 1) {
-          this.group.rotation.x = 1;
-        }
+        // if (this.group.rotation.x <= 1 && this.group.rotation.x >= -1) {
+        //   this.group.rotation.x += this.finalRotationY * 0.1;
+        // }
+        // if (this.group.rotation.x > 1) {
+        //   this.group.rotation.x = 1;
+        // }
 
-        if (this.group.rotation.x < -1) {
-          this.group.rotation.x = -1;
-        }
+        // if (this.group.rotation.x < -1) {
+        //   this.group.rotation.x = -1;
+        // }
       }
     }
 
@@ -248,19 +264,30 @@ export default class Renderer3D {
     };
   };
 
-  drawLinesBetweenPositions = () => {
-    if (this.time.toFixed(1) % 6 === 0) {
-      const posCount = this.positions.length;
-      const randFirst = Math.round(Math.random() * posCount - 1);
-      const randSecond = Math.round(Math.random() * posCount - 1);
-      const l = new Line(
-        this.positions[randFirst],
-        this.positions[randSecond],
-        this.outR,
-        this.group
-      );
-      l.startAnimation();
+  drawLinesBetweenPositionsRender = () => {
+    if (this.time.toFixed(1) % 24 === 0) {
+      this.drawLine(0);
+    } else if (this.time.toFixed(1) % 25 === 0) {
+      this.drawLine(1);
+    } else if (this.time.toFixed(1) % 26 === 0) {
+      this.drawLine(2);
+    } else if (this.time.toFixed(1) % 27 === 0) {
+      this.drawLine(3);
     }
+  };
+
+  drawLine = (i) => {
+    const localGroup = groups[`group${i + 1}`];
+    this.ptrGroups[i].now =
+      (this.ptrGroups[i].now + 1) % (this.ptrGroups[i].all - 1);
+    const ptr = this.ptrGroups[i].now;
+    const l = new Line(
+      localGroup[ptr],
+      localGroup[ptr + 1],
+      this.outR,
+      this.group
+    );
+    l.startAnimation();
   };
 
   onDocumentMouseDown = (event) => {
@@ -284,10 +311,10 @@ export default class Renderer3D {
 
     this.targetRotationY =
       this.targetRotationOnMouseDownY +
-      (this.mouseY - this.mouseYOnMouseDown) * 0.01;
+      (this.mouseY - this.mouseYOnMouseDown) * 0.002;
     this.targetRotationX =
       this.targetRotationOnMouseDownX +
-      (this.mouseX - this.mouseXOnMouseDown) * 0.01;
+      (this.mouseX - this.mouseXOnMouseDown) * 0.002;
   };
 
   onDocumentMouseUp = () => {
