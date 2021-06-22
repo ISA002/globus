@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { geoInterpolate } from "d3";
-import { Circ, Power2, TimelineMax } from "gsap";
+import { Power2, TimelineMax } from "gsap";
 import vertex from "./lineShader/vertex.glsl";
 import fragment from "./lineShader/fragment.glsl";
 
@@ -122,9 +122,11 @@ export default class Line {
         this.mesh.material.uniforms.u_vanishValue.value += 0.03;
       }
       const vanVal = this.mesh.material.uniforms.u_vanishValue.value.toFixed(1);
-      if (Number(vanVal) > 3) {
+
+      if (Number(vanVal) > 5) {
         this.scene.remove(this.endPointMesh);
       }
+
       this.mesh.geometry.setDrawRange(0, drawRangeCount);
       // requestAnimationFrame(this.drawAnimatedLine);
     } else {

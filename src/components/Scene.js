@@ -3,8 +3,6 @@ import Line from "./Line";
 import gsap from "gsap";
 import map from "../assets/map2.png";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import vertex from "./shader/vertex.glsl";
-import fragment from "./shader/fragment.glsl";
 import groups from "./groupsOfCities";
 
 // const africaColor = { r: 0, g: 166, b: 255 };
@@ -19,11 +17,11 @@ export default class Renderer3D {
     this.renderer.setSize(this.width, this.height);
     this.context = this.renderer.getContext("2d");
     // this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.time = 0;
+    this.time = 23;
     this.offsetTime = 0;
     this.startTime = false;
     this.speed = { value: 0 };
-    this.renderer.setClearColor(0x13344c, 1);
+    this.renderer.setClearColor(0x0b0c4c, 1);
     dom.appendChild(this.renderer.domElement);
     this.group = new THREE.Group();
     this.rotate = true;
@@ -103,45 +101,9 @@ export default class Renderer3D {
     this.sphereFront.rotateY(55);
     this.sphereBack.rotateY(55);
 
-    const hexagonSphereData = {
-      uniforms: {
-        u_resolution: {
-          type: "v2",
-          value: new THREE.Vector2(window.innerWidth, window.innerHeight),
-        },
-      },
-      vertexShader: vertex,
-      fragmentShader: fragment,
-      depthTest: false,
-      transparent: true,
-    };
-
-    const hexagonMaterialFront = new THREE.ShaderMaterial({
-      ...hexagonSphereData,
-      side: THREE.FrontSide,
-    });
-
-    const hexagonMaterialBack = new THREE.ShaderMaterial({
-      ...hexagonSphereData,
-      side: THREE.BackSide,
-    });
-
-    const hexagonGeometry = new THREE.SphereGeometry(5, 12, 12);
-
-    const hexagongSphereFront = new THREE.Mesh(
-      hexagonGeometry,
-      hexagonMaterialFront
-    );
-    const hexagongSphereBack = new THREE.Mesh(
-      hexagonGeometry,
-      hexagonMaterialBack
-    );
-
     new THREE.ImageLoader().load(map, (img) => {
       this.group.add(this.sphereBack);
       this.group.add(this.sphereFront);
-      this.group.add(hexagongSphereFront);
-      this.group.add(hexagongSphereBack);
 
       // const imageData = this.getImageData(img);
       // const DOT_COUNT = 30000;
@@ -208,8 +170,8 @@ export default class Renderer3D {
       //   });
       //   console.log(this.positions);
       // }
-      this.scene.add(this.group);
       this.startTime = true;
+      this.scene.add(this.group);
     });
   };
 
