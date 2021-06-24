@@ -5,7 +5,7 @@ precision mediump float;
 varying vec2 vUv;
 varying vec3 vPosition;
 varying vec3 vNormal;
-uniform vec2 u_resolution;
+uniform sampler2D u_map;
 
 float hex(vec2 p) {
   p.x *= 0.57735*2.0;
@@ -15,11 +15,11 @@ float hex(vec2 p) {
 }
 
 void main(void) {
-	vec2 pos = vUv.xy / 3.;
-  pos.x *= 2.;
 
-	vec2 p = pos / 0.01; 
-	float  r = (1.0 - 0.6)*0.4;	
-	vec4 hexagon = vec4(smoothstep(0.1, r - 0.1, hex(p)));
-  gl_FragColor = vec4(hexagon.x, hexagon.y, hexagon.z, 0.1);
+
+	vec4 tex = texture2D(u_map, vUv);
+	if (tex.r > 0.3 && tex.g > 0.3 && tex.b > 0.3) discard;
+	// tex.a -= 0.1;
+
+  gl_FragColor = tex;
 }

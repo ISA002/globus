@@ -1,9 +1,11 @@
 import * as THREE from "three";
 import Line from "./Line";
 import gsap from "gsap";
-import map from "../assets/map2.png";
+import map from "../assets/map.png";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import groups from "./groupsOfCities";
+// import vertex from "./shader/vertex.glsl";
+// import fragment from "./shader/fragment.glsl";
 
 // const africaColor = { r: 0, g: 166, b: 255 };
 export default class Renderer3D {
@@ -17,6 +19,8 @@ export default class Renderer3D {
     this.renderer.setSize(this.width, this.height);
     this.context = this.renderer.getContext("2d");
     // this.renderer.setPixelRatio(window.devicePixelRatio);
+    // this.renderer.physicallyCorrectLights = true;
+    // this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.time = 23;
     this.offsetTime = 0;
     this.startTime = false;
@@ -52,8 +56,11 @@ export default class Renderer3D {
       1000
     );
 
-    this.camera.position.set(0, 0, 20);
+    this.camera.position.set(0, 0, 30);
     this.camera.lookAt(new THREE.Vector3());
+
+    // const light = new THREE.AmbientLight(0x555555); // soft white light
+    // this.scene.add(light);
 
     this.addListeners();
     this.addObjects();
@@ -80,19 +87,33 @@ export default class Renderer3D {
     const geometry = new THREE.SphereGeometry(5, 64, 64);
 
     const texture = new THREE.TextureLoader().load(map);
+    // texture.anisotropy = 4;
+    // texture.format = THREE.RGBAFormat;
     const mapSphereMaterialData = {
       map: texture,
+      // uniforms: {
+      //   u_map: {
+      //     type: "t",
+      //     value: texture,
+      //   },
+      // },
       transparent: true,
+      // vertexShader: vertex,
+      // fragmentShader: fragment,
+      // alphaTest: 0.5,
+      // opacity: 0.2,
     };
     const materialFront = new THREE.MeshBasicMaterial({
       ...mapSphereMaterialData,
       side: THREE.FrontSide,
+      opacity: 0.9,
+      // depthTest: false,
     });
 
     const materialBack = new THREE.MeshBasicMaterial({
       ...mapSphereMaterialData,
       side: THREE.BackSide,
-      opacity: 0.3,
+      opacity: 0.2,
       depthTest: false,
     });
 
@@ -108,11 +129,11 @@ export default class Renderer3D {
       // const imageData = this.getImageData(img);
       // const DOT_COUNT = 30000;
 
-      // const dotGeometry = new THREE.CircleGeometry(0.03, 5);
-      // const materialDot = new THREE.MeshBasicMaterial({
-      //   color: 0xffff00,
-      //   side: THREE.DoubleSide,
-      // });
+      const dotGeometry = new THREE.SphereGeometry(0.05, 32, 32);
+      const materialDot = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+      });
       this.positions = [];
       this.ptrGroups = [
         { all: groups.group1.length - 1, now: -1 },
@@ -125,18 +146,23 @@ export default class Renderer3D {
       this.outR = 5;
       // const sizeMap = { x: 2600, y: 1228 };
 
-      // for (let i = 0; i < groups.group4.length; i++) {
-      //   this.positions.push(groups.group4[i]);
-      //   dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
-      //   const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
-      //   dotMesh.position.set(
-      //     groups.group4[i].x,
-      //     groups.group4[i].y,
-      //     groups.group4[i].z
-      //   );
-      //   dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
-      //   this.group.add(dotMesh);
-      // }
+      const groupsForPoints = [
+        ...groups.group1,
+        ...groups.group2,
+        ...groups.group3,
+        ...groups.group4,
+      ];
+      for (let i = 0; i < groupsForPoints.length; i++) {
+        dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
+        const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
+        dotMesh.position.set(
+          groupsForPoints[i].x,
+          groupsForPoints[i].y,
+          groupsForPoints[i].z
+        );
+        dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
+        this.group.add(dotMesh);
+      }
 
       // for (let i = DOT_COUNT; i >= 0; i--) {
       //   // continue;
