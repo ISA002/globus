@@ -6,6 +6,7 @@ import map from "../assets/map.png";
 import groups from "./groupsOfCities";
 // import vertex from "./shader/vertex.glsl";
 // import fragment from "./shader/fragment.glsl";
+// import fragment2 from "./shader/fragment2.glsl";
 
 // const africaColor = { r: 0, g: 166, b: 255 };
 export default class Renderer3D {
@@ -99,24 +100,37 @@ export default class Renderer3D {
       // },
       transparent: true,
       // vertexShader: vertex,
-      // fragmentShader: fragment,
       // alphaTest: 0.5,
       // opacity: 0.2,
     };
+
     const materialFront = new THREE.MeshBasicMaterial({
+      // const materialFront = new THREE.ShaderMaterial({
       ...mapSphereMaterialData,
       side: THREE.FrontSide,
-      opacity: 0.9,
+      opacity: 0.7,
+      // fragmentShader: fragment,
       // depthTest: false,
     });
 
     const materialBack = new THREE.MeshBasicMaterial({
+      // const materialBack = new THREE.ShaderMaterial({
       ...mapSphereMaterialData,
       side: THREE.BackSide,
-      opacity: 0.2,
+      opacity: 0.1,
+      // fragmentShader: fragment2,
       depthTest: false,
     });
 
+    // const sphereGeometry = new THREE.SphereGeometry(4.98, 64, 64);
+    // const sphereMaterial = new THREE.MeshBasicMaterial({
+    //   color: 0xffffff,
+    //   transparent: true,
+    //   opacity: 0.65,
+    //   depthTest: false,
+    // });
+
+    // this.whiteSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     this.sphereFront = new THREE.Mesh(geometry, materialFront);
     this.sphereBack = new THREE.Mesh(geometry, materialBack);
     this.sphereFront.rotateY(55);
@@ -125,6 +139,7 @@ export default class Renderer3D {
     new THREE.ImageLoader().load(map, (img) => {
       this.group.add(this.sphereBack);
       this.group.add(this.sphereFront);
+      // this.group.add(this.whiteSphere);
 
       // const imageData = this.getImageData(img);
       // const DOT_COUNT = 30000;
