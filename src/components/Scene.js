@@ -1,12 +1,13 @@
 import * as THREE from "three";
 import Line from "./Line";
 import gsap from "gsap";
-import map from "../assets/map.png";
+import map from "../assets/mapMini.png";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import groups from "./groupsOfCities";
-// import vertex from "./shader/vertex.glsl";
-// import fragment from "./shader/fragment.glsl";
-// import fragment2 from "./shader/fragment2.glsl";
+import vertex from "./shader/vertex.glsl";
+import fragment from "./shader/fragment.glsl";
+import fragment2 from "./shader/fragment2.glsl";
+import { BufferGeometryUtils } from "three/examples/jsm/utils/BufferGeometryUtils";
 
 // const africaColor = { r: 0, g: 166, b: 255 };
 export default class Renderer3D {
@@ -91,46 +92,47 @@ export default class Renderer3D {
     // texture.anisotropy = 4;
     // texture.format = THREE.RGBAFormat;
     const mapSphereMaterialData = {
-      map: texture,
-      // uniforms: {
-      //   u_map: {
-      //     type: "t",
-      //     value: texture,
-      //   },
-      // },
+      // map: texture,
+      uniforms: {
+        u_map: {
+          type: "t",
+          value: texture,
+        },
+      },
       transparent: true,
-      // vertexShader: vertex,
+      vertexShader: vertex,
       // alphaTest: 0.5,
       // opacity: 0.2,
     };
 
-    const materialFront = new THREE.MeshBasicMaterial({
-      // const materialFront = new THREE.ShaderMaterial({
+    // const materialFront = new THREE.MeshBasicMaterial({
+    const materialFront = new THREE.ShaderMaterial({
       ...mapSphereMaterialData,
       side: THREE.FrontSide,
-      opacity: 0.7,
-      // fragmentShader: fragment,
+      // opacity: 0.7,
+      fragmentShader: fragment,
       // depthTest: false,
     });
 
-    const materialBack = new THREE.MeshBasicMaterial({
-      // const materialBack = new THREE.ShaderMaterial({
+    // const materialBack = new THREE.MeshBasicMaterial({
+    const materialBack = new THREE.ShaderMaterial({
       ...mapSphereMaterialData,
       side: THREE.BackSide,
-      opacity: 0.1,
-      // fragmentShader: fragment2,
+      // opacity: 0.1,
+      fragmentShader: fragment2,
+      // alphaTest: true,
+      // depthTest: false,
+    });
+
+    const sphereGeometry = new THREE.SphereGeometry(4.98, 64, 64);
+    const sphereMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.75,
       depthTest: false,
     });
 
-    // const sphereGeometry = new THREE.SphereGeometry(4.98, 64, 64);
-    // const sphereMaterial = new THREE.MeshBasicMaterial({
-    //   color: 0xffffff,
-    //   transparent: true,
-    //   opacity: 0.65,
-    //   depthTest: false,
-    // });
-
-    // this.whiteSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    this.whiteSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     this.sphereFront = new THREE.Mesh(geometry, materialFront);
     this.sphereBack = new THREE.Mesh(geometry, materialBack);
     this.sphereFront.rotateY(55);
@@ -139,15 +141,16 @@ export default class Renderer3D {
     new THREE.ImageLoader().load(map, (img) => {
       this.group.add(this.sphereBack);
       this.group.add(this.sphereFront);
-      // this.group.add(this.whiteSphere);
+      this.group.add(this.whiteSphere);
 
       // const imageData = this.getImageData(img);
       // const DOT_COUNT = 30000;
 
-      const dotGeometry = new THREE.SphereGeometry(0.05, 32, 32);
       const materialDot = new THREE.MeshBasicMaterial({
         color: 0xffffff,
-        side: THREE.DoubleSide,
+        side: THREE.FrontSide,
+        // transparent: false,
+        // depthTest: false,
       });
       this.positions = [];
       this.ptrGroups = [
@@ -167,16 +170,29 @@ export default class Renderer3D {
         ...groups.group3,
         ...groups.group4,
       ];
+
+      const originHelper = new THREE.Object3D();
+      const geometries = [];
+
       for (let i = 0; i < groupsForPoints.length; i++) {
-        dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
-        const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
-        dotMesh.position.set(
+        // dotGeometry.lookAt(new THREE.Vector3(0, 0, 0));
+        // const dotMesh = new THREE.Mesh(dotGeometry, materialDot);
+        const dotGeometry = new THREE.SphereGeometry(0.05, 32, 32);
+        originHelper.position.set(
           groupsForPoints[i].x,
           groupsForPoints[i].y,
           groupsForPoints[i].z
         );
-        dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
-        this.group.add(dotMesh);
+        originHelper.updateWorldMatrix(true, false);
+        dotGeometry.applyMatrix4(originHelper.matrixWorld);
+        geometries.push(dotGeometry);
+        // dotMesh.position.set(
+        //   groupsForPoints[i].x,
+        //   groupsForPoints[i].y,
+        //   groupsForPoints[i].z
+        // );
+        // dotMesh.lookAt(new THREE.Vector3(0, 0, 0));
+        // this.group.add(dotMesh);
       }
 
       // for (let i = DOT_COUNT; i >= 0; i--) {
@@ -211,6 +227,14 @@ export default class Renderer3D {
       //   });
       //   console.log(this.positions);
       // }
+
+      const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries(
+        geometries,
+        false
+      );
+      this.bufferMesh = new THREE.Mesh(mergedGeometry, materialDot);
+      this.scene.add(this.bufferMesh);
+
       this.startTime = true;
       this.scene.add(this.group);
     });
@@ -233,12 +257,17 @@ export default class Renderer3D {
           duration: 1,
         });
         this.group.rotation.y += this.speed.value;
+        this.bufferMesh.rotation.y += this.speed.value;
         this.rotationOffset = offsetY;
         this.offsetTime = 0;
       } else {
         this.speed.value = 0;
         this.group.rotation.y +=
           (this.targetRotationX - this.group.rotation.y) * 0.1 -
+          this.rotationOffset;
+
+        this.bufferMesh.rotation.y +=
+          (this.targetRotationX - this.bufferMesh.rotation.y) * 0.1 -
           this.rotationOffset;
 
         // if (this.group.rotation.x <= 1 && this.group.rotation.x >= -1) {

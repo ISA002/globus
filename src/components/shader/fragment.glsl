@@ -19,7 +19,7 @@ void main(void) {
 
 	vec4 tex = texture2D(u_map, vUv);
 	if (tex.r > 0.3 && tex.g > 0.3 && tex.b > 0.3) discard;
-	// tex.a -= 0.1;
+	tex.a -= 0.1;
 
   gl_FragColor = tex;
 }

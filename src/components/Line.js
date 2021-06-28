@@ -9,6 +9,7 @@ export default class Line {
     this.scene = scene;
     this.startTime = performance.now();
     this.addedEndPoint = false;
+    this.destroy = () => {};
 
     if (startXYZ !== undefined && endXYZ !== undefined) {
       const [start, end] = this.getLatAndLong(startXYZ, endXYZ, radius);
@@ -131,6 +132,7 @@ export default class Line {
       // requestAnimationFrame(this.drawAnimatedLine);
     } else {
       this.scene.remove(this.mesh);
+      this.destroy();
     }
   };
 }
